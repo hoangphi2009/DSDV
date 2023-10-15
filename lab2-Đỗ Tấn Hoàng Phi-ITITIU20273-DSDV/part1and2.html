@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part 1 and Part 2</title>
+    <link rel="stylesheet" href="main.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <h3>Đỗ Tấn Hoàng Phi</h3>
+    <h4>ITITIU20273</h4>
+    <h4 class="course-title">Data Science and Data Visualization</h4>
+    <h4 class="lab-title">Lab 2 - Introduction to Javascript and D3.js</h4>
+    <p>This is all my own work. I did not copy the code from any other source.</p>
+
+    <!-- Part 1.	Histogram (JavaScript + SVG) -->
+    <!--///////////////////////////////////////////-->
+    <script>
+        function addEltToSVG(svg, name, attrs) {
+            var element = document.createElementNS("http://www.w3.org/2000/svg", name);
+            if (attrs === undefined) attrs = {};
+            for (var key in attrs) {
+                element.setAttributeNS(null, key, attrs[key]);
+            }
+            svg.appendChild(element);
+        }
+
+        function createHistogram(svgElt, str) {
+            const bins = {'A-D': 0, 'E-H': 0, 'I-L': 0, 'M-P': 0, 'Q-U': 0, 'V-Z': 0};
+            const binKeys = Object.keys(bins);
+
+            str = str.toUpperCase().replace(/[^A-Z]/g, '');
+            for (let char of str) {
+                for (let i = 0; i < binKeys.length; i++) {
+                    const range = binKeys[i].split('-');
+                    if (char >= range[0] && char <= range[1]) {
+                        bins[binKeys[i]]++;
+                        break;
+                    }
+                }
+            }
+
+            let xPos = 10;
+            for (let bin of binKeys) {
+                const barHeight = bins[bin] * 50;
+                addEltToSVG(svgElt, 'rect', {
+                    x: xPos,
+                    y: 400 - barHeight,
+                    width: 50,
+                    height: barHeight,
+                    fill: 'blue',
+                    stroke: 'black'
+                });
+                xPos += 55;
+            }
+            addEltToSVG(svgElt, 'line', {
+            x1: 10,
+            y1: 400,
+            x2: xPos - 5,
+            y2: 400,
+            stroke: 'black',
+            'stroke-width': 2
+    });
+        }
+    </script>
+    <svg id="histogram" width="300" height="400"></svg>
+    <script>
+        const svgElement = document.getElementById('histogram');
+        createHistogram(svgElement, 'PHI');
+    </script>
+    <!--Part 1.	Histogram (JavaScript + SVG) -->
+    <!--///////////////////////////////////////////-->
+
+
+    <!--Part 2.	Bar chart with D3 -->
+    <!--///////////////////////////////////////////-->
+    <script>
+    // Tạo mảng 20 giá trị ngẫu nhiên
+    const data = Array.from({ length: 20 }, () => Math.floor(Math.random() * 26));
+
+    // Cấu hình cho biểu đồ
+    const width = 500;
+    const height = 300;
+    const barWidth = width / data.length;
+    const colorScale = d3.scaleLinear()
+        .domain([0, d3.max(data)])
+        .range(['lightblue', 'blue']);
+
+    const svg = d3.select('body')
+        .append('svg')
+        .attr('width', width)
+        .attr('height', height);
+
+    // Vẽ cột
+    svg.selectAll('rect')
+        .data(data)
+        .enter()
+        .append('rect')
+        .attr('x', (d, i) => i * barWidth)
+        .attr('y', d => height - d * 10)
+        .attr('width', barWidth - 1)
+        .attr('height', d => d * 10)
+        .attr('fill', d => colorScale(d));
+
+    // Thêm nhãn cho mỗi cột
+    svg.selectAll('text')
+        .data(data)
+        .enter()
+        .append('text')
+        .text(d => d)
+        .attr('x', (d, i) => i * barWidth + barWidth / 2)
+        .attr('y', d => height - d * 10 - 2)
+        .attr('font-size', '10px')
+        .attr('fill', 'black')
+        .attr('text-anchor', 'middle');
+    </script>
+    <!--Part 2.	Bar chart with D3 -->
+    <!--///////////////////////////////////////////-->
+</body>
+</html>

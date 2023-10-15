@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Par 3</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+    <h3>Đỗ Tấn Hoàng Phi</h3>
+    <h4>ITITIU20273</h4>
+    <h4 class="course-title">Data Science and Data Visualization</h4>
+    <h4 class="lab-title">Lab 2 - Introduction to Javascript and D3.js</h4>
+    <p>This is all my own work. I did not copy the code from any other source.</p>
+    <!--Part 2.	Bar chart with D3 -->
+    <!--///////////////////////////////////////////-->
+    <script>
+        // Tạo mảng 20 giá trị ngẫu nhiên
+        const data = Array.from({ length: 20 }, () => Math.floor(Math.random() * 26));
+    
+        // Cấu hình cho biểu đồ
+        const width = 500;
+        const height = 300;
+        const barWidth = width / data.length;
+        const colorScale = d3.scaleLinear()
+            .domain([0, d3.max(data)])
+            .range(['lightblue', 'blue']);
+    
+        const svg = d3.select('body')
+            .append('svg')
+            .attr('width', width)
+            .attr('height', height);
+    
+        // Vẽ cột
+        svg.selectAll('rect')
+            .data(data)
+            .enter()
+            .append('rect')
+            .attr('x', (d, i) => i * barWidth)
+            .attr('y', d => height - d * 10)
+            .attr('width', barWidth - 1)
+            .attr('height', d => d * 10)
+            .attr('fill', d => colorScale(d));
+    
+        // Thêm nhãn cho mỗi cột
+        svg.selectAll('text')
+            .data(data)
+            .enter()
+            .append('text')
+            .text(d => d)
+            .attr('x', (d, i) => i * barWidth + barWidth / 2)
+            .attr('y', d => height - d * 10 - 2)
+            .attr('font-size', '10px')
+            .attr('fill', 'black')
+            .attr('text-anchor', 'middle');
+        </script>
+        <!--Part 2.	Bar chart with D3 -->
+        <!--///////////////////////////////////////////-->
+        <!--Part 3.Histogram D3 -->
+        <!--///////////////////////////////////////////-->
+        <script>
+            // Set up the histogram function
+        const histogram = d3.histogram()
+            .value(d => d)
+            .domain([0, d3.max(data)])
+            .thresholds(10); // Number of bins
+
+        // Compute the bins
+        const bins = histogram(data);
+
+        // Update the color scale domain based on bin lengths
+        colorScale.domain([0, d3.max(bins, d => d.length)]);
+
+        // Remove the bar chart bars
+        svg.selectAll('rect').remove();
+        svg.selectAll('text').remove();
+
+        // Draw the histogram bars
+        svg.selectAll('rect')
+            .data(bins)
+            .enter()
+            .append('rect')
+            .attr('x', d => d.x0 * barWidth)
+            .attr('y', d => height - d.length * 10)
+            .attr('width', d => (d.x1 - d.x0) * barWidth - 1)
+            .attr('height', d => d.length * 10)
+            .attr('fill', d => colorScale(d.length));
+
+        // Add labels to the histogram bars
+        svg.selectAll('text')
+            .data(bins)
+            .enter()
+            .append('text')
+            .text(d => d.length)
+            .attr('x', d => (d.x0 + (d.x1 - d.x0) / 2) * barWidth)
+            .attr('y', d => height - d.length * 10 - 2)
+            .attr('font-size', '10px')
+            .attr('fill', 'black')
+            .attr('text-anchor', 'middle');
+        </script>
+        <!--Part 3.Histogram D3 -->
+        <!--///////////////////////////////////////////-->
+
+
+
+        
+</body>
+</html>
