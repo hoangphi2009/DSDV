@@ -14,9 +14,7 @@
     <h4 class="course-title">Data Science and Data Visualization</h4>
     <h4 class="lab-title">Lab 3 –D3.js - scales</h4>
     <p>This is all my own work. I did not copy the code from any other source.</p>
-
     <div id="scatterplot"></div>
-
     <script>
 
         const margin = { top: 20, right: 40, bottom: 50, left: 90 };
@@ -72,15 +70,32 @@
           .attr("cy", (d) => yScale(d.grpd_vnd))
           .attr("r", (d) => Math.sqrt(areaScale(d.area) / Math.PI))
           .attr("fill", (d) => colorScale(d.density))
+          .attr("opacity", (d) => 0.9)
           .attr("stroke", "black"); 
 
-        
+        const text = svg
+          .selectAll(".text")
+          .data(data)
+          .enter()
+          .append("text")
+          .attr("x", (d) => xScale(d.population))
+          .attr("y", (d) => yScale(d.grpd_vnd))
+          .attr("dy", "-1em")  
+          .attr("dx", "1em")  
+          .attr("font-size", "10px")
+          .attr("fill", "black")
+          .attr("font-weight", "bold")
+          .text((d, i) => i+1); 
+
+
         const legend = svg
           .selectAll(".legend")
           .data(data.map((d) => d.province)) 
           .enter()
           .append("g")
           .attr("class", "legend")
+        //   .attr("stroke","gray")
+          .attr("opacity", (d) => 1)
           .attr("transform", (d, i) => "translate(150," + i * 20 + ")");
 
         legend
@@ -97,6 +112,15 @@
           .attr("dy", ".35em")
           .style("text-anchor", "end")
           .text((d) => d);
+        
+        legend
+          .append("text")
+          .attr("x", width + 30)  
+          .attr("y", 9)
+          .attr("dy", ".35em")
+          .style("text-anchor", "end")
+          .text((d, i) => i+1);
+
         
         
         const xAxis = d3.axisBottom(xScale);
@@ -127,7 +151,8 @@
           .attr("x", width / 2)
           .attr("y", height + margin.bottom - 10)
           .style("text-anchor", "middle")
-          .text("Population");
+          .text("Population (million)")
+          .style("fill","red");
 
         svg
           .append("text")
@@ -136,6 +161,7 @@
           .attr("y", -margin.left + 15)
           .attr("dy", "0.8em")
           .style("text-anchor", "middle")
+          .style("fill","red")
           .text("GRDP-VND (million VND/person/year)");
         svg
           .append("text")
@@ -143,10 +169,10 @@
           .attr("y", -margin.top / 3.5)
           .style("text-anchor", "middle")
           .style("font-size", "15px")
-          .style("font-weight", "bold")
+          .style("font-weight", "italic")
+          .style("fill","red")
           .text("Scatterplot of Population and GRPD-VND");
       }
     </script>
-    
 </body>
 </html>
