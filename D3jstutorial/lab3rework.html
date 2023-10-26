@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://d3js.org/d3.v6.js" charset="utf-8"></script>
+</head>
+<body>
+    <div id="scatterplot"></div>
+    <script>
+        const margin = {top: 10, left:90,right:40,bottom:50}
+        const width = 1000 - margin.left - margin.right
+        const height = 600 - margin.top - margin.bottom
+        const colorScale = d3.scaleOrdinal(d3.schemeCategory10)
+        
+        const svg = d3
+        .select("#scatterplot")
+        .append("svg")
+        .attr("width", width+ 150 + margin.left + margin.right)
+        .attr("height", height+ 700 + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        function rowConverter(R) {
+            return {
+                //hàm tên provience được lấy giá trị với tham số r và giá trị trong cột province
+                province: R.province,
+                //dấu + cho phép đổi giá trị string thành numbering
+                population: +R.population,
+                //parseFloat để sử dụng đổi thành giá trị float
+                grpd_vnd: parseFloat(R["GRDP-VND"]),
+                //dấu + cho phép đổi giá trị string thành numbering
+                area: +R.area,
+                density: +R.density,
+                ma:+R.ma,
+            };
+        }
+        //d3.csv cho phép d3.js tải dữ liệu từ tệp csv từ đường link và kết hợp với các phương thức rowConverter chuyển đổi giá trị phù họp thành data
+        d3.csv("https://tungth.github.io/data/vn-provinces-data.csv",rowConverter
+        ).then((data) => {
+        //kiểm tra đã chuyển đổi data 
+        console.log(data);
+        //phân tán dữ liệu theo biểu đồ
+        drawScatterplot(data);
+        });
+
+        function drawScatterplot(data) {
+
+        const xScale = d3
+          .scaleLinear()
+          .domain([0, d3.max(data, (d) => d.population)])
+          .range([0, width]);
+
+        const yScale = d3.scaleLinear().domain([0, 200]).range([height, 0]);
+        
+        const areaScale = d3
+          .scaleSqrt()
+          .domain([10, d3.max(data, (d) => d.area)])
+          .range([50, 500]);
+          
+        const xAxis = d3.axisBottom(xScale);
+        const yAxis = d3.axisLeft(yScale);
+        svg
+          .append("g")
+          .attr("transform", "translate(0," + height + ")")
+          .call(xAxis)
+          .append("text")
+          .attr("x", width / 2)
+          .attr("y", margin.bottom - 10)
+          .attr("dy", "0.8em");
+
+        svg
+          .append("g")
+          .call(yAxis)
+          .append("text")
+          .attr("transform", "rotate(-90)")
+          .attr("x", -height / 2)
+          .attr("y", -margin.left + 15)
+          .attr("dy", "0.8em");
+        svg
+          .append("text")
+          .attr("x", width / 2)
+          .attr("y", height + margin.bottom - 10)
+          .style("text-anchor", "middle")
+          .text("Population (million)")
+          .style("fill","red");
+
+        svg
+          .append("text")
+          .attr("transform", "rotate(-90)")
+          .attr("x", -height / 2)
+          .attr("y", -margin.left + 15)
+          .attr("dy", "0.8em")
+          .style("text-anchor", "middle")
+          .style("fill","red")
+          .text("GRDP-VND (million VND/person/year)");
+        svg
+          .append("text")
+          .attr("x", width / 2)
+          .attr("y", margin.top / 3.5)
+          .style("text-anchor", "middle")
+          .style("font-size", "15px")
+          .style("font-weight", "italic")
+          .style("fill","red")
+          .text("Scatterplot of Population and GRPD-VND");
+        const circle = svg
+          .selectAll(".circle")
+          .data(data)
+          .enter()
+          .append("circle")
+          .attr("cx", (d) => xScale(d.population))
+          .attr("cy", (d) => yScale(d.grpd_vnd))
+          .attr("r", (d) => Math.sqrt(areaScale(d.area) / Math.PI))
+          .attr("fill", (d) => colorScale(d.density))
+          .attr("opacity", (d) => 0.9)
+          .attr("stroke", "black"); 
+        const text = svg
+          .selectAll(".text")
+          .data(data)
+          .enter()
+          .append("text")
+          .attr("x", (d) => xScale(d.population))
+          .attr("y", (d) => yScale(d.grpd_vnd))
+          .attr("dy", "-1em")  
+          .attr("dx", "1em")  
+          .attr("font-size", "10px")
+          .attr("fill", "black")
+          .attr("font-weight", "bold")
+          .text((d, i) => i+1); 
+        const marow = svg
+          .selectAll(".marow")
+          .data(data.map((d) => d.ma)) 
+          .enter()
+          .append("g")
+          .attr("class", "legend")
+        //   .attr("stroke","gray")
+          .attr("opacity", (d) => 1)
+          .attr("transform", (d, i) => "translate(150," + i * 20 + ")");
+        //ô màu
+        marow
+          .append("rect")
+          .attr("x", width - 18)
+          .attr("width", 18)
+          .attr("height", 18)
+          .style("fill", (d, i) => colorScale(data[i].density));
+        //ô tỉnh
+        marow
+          .append("text")
+          .attr("x", width + 24)
+          .attr("y", 9 )
+          .attr("dy", ".35em")
+          .style("text-anchor", "end")
+          .text((d) => d);
+        const area = svg
+          .selectAll(".number")
+          .data(data.map((d) => d.province))
+          .enter()
+          .append("g")
+          .attr("class", "legend")
+        //   .attr("stroke","gray")
+          .attr("opacity", (d) => 1)
+          .attr("transform", (d, i) => "translate(150," + i * 20 + ")"); 
+        area
+          .append("text")
+          .attr("x", width - 24)
+          .attr("y", 9 )
+          .attr("dy", ".35em")
+          .style("text-anchor", "end")
+          .text((d) => d);
+    }
+    </script>
+</body>
+</html>
