@@ -1,0 +1,21 @@
+body {
+    font-family: Arial, sans-serif;
+  }
+  
+  h3 {
+    color: blue;
+  }
+  
+  h4 {
+    font-weight: bold;
+  }
+
+.type{
+  color: red;
+  font-weight: bold;
+}
+  
+.lab-title {
+  font-weight: 100;
+  font-style: italic;
+}

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab 4</title>
+    <link rel="stylesheet" href="main.css">
+    <script src="https://d3js.org/d3.v6.js" charset="utf-8"></script>
+</head>
+<body onload="checkCookie()">
+    <h3>Đỗ Tấn Hoàng Phi</h3>
+    <h4>ITITIU20273</h4>
+    <h4 class="course-title">Data Science and Data Visualization</h4>
+    <h4 class="lab-title">Lab 4 _ D3.js - Transition, Update, Enter & Exit</h4>
+    <p>This is all my own work. I did not copy the code from any other source.</p>
+    <button onclick="addNewProvince()">Add New Province</button>
+    <button onclick="deleteNewProvince()">Delete Last Province</button>
+    <label class="type" for="sortCriteria">TYPE :</label>
+    <select id="sortCriteria" onchange="updateChartWithAnimation()">
+        <option value="GRPD">GRPD</option>
+        <option value="area">Area</option>
+        <option value="population">Population</option>
+        <option value="density">Density</option>
+    </select>
+    <br />
+    <svg id="plot" width="1100" height="1000"></svg>
+    <script>
+        var margin = { top: 20, right: 20, bottom: 50, left: 100 };
+        var width = 800 - margin.left - margin.right;
+        var height = 400 - margin.top - margin.bottom;
+        var svg = d3
+        .select("#plot")
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+        var data;
+        d3.csv(
+            "https://tungth.github.io/data/vn-provinces-data.csv",
+            function (row) {
+                return {
+                    Province: row["province"],
+                    GRPD: parseFloat(row["GRDP-VND"]),
+                    area: +row.area,
+                    population: +row.population,
+                    density: +row.density,
+                };
+            }
+            ).then(function (initialData) {
+                initialData.sort(function (a, b) {
+                    return b.GRPD - a.GRPD;
+                    return b.area - a.area; 
+                });
+                data = initialData.slice(0, parseInt(getCookie("limit")));
+                updateChart();
+            });
+            function updateChart() {
+                var sortCriteria = document.getElementById("sortCriteria").value;
+
+                data.sort(function (a, b) {
+                    return b[sortCriteria] - a[sortCriteria];
+                });
+
+                var colorScale = d3.scaleSequential(d3.interpolateReds)
+                .domain([d3.min(data, d => d[sortCriteria]), d3.max(data, d => d[sortCriteria])]);
+
+                var xScale = d3
+                .scaleLinear()
+                .domain([
+                    0, d3.max(data, (d) => {
+                        return d[sortCriteria];
+                    }),
+                ])
+                .range([0, width + 200]);
+                var yScale = d3
+                .scaleBand()
+                .domain(
+                    data.map((d) => {
+                    return d.Province;
+                    })
+                )
+                .range([height, 0])
+                .padding(0.1);
+                svg.selectAll(".bar").remove();
+                svg.selectAll(".label").remove();
+
+                svg
+                .selectAll(".bar")
+                .data(data)
+                .enter()
+                .append("rect")
+                .attr("class", "bar")
+                .attr("x", 0)
+                .attr("fill", (d) => colorScale(d[sortCriteria]))
+                .attr("y", (d) => yScale(d.Province))
+                .transition()
+                .attr("width", (d) => xScale(d[sortCriteria]))
+                .duration(500)
+                .delay((d, i) => i * 50)
+                .attr("height", yScale.bandwidth());
+                svg
+                .selectAll(".label")
+                .data(data)
+                .enter()
+                .append("text")
+                .attr("class", "label")
+                .attr("x", (d) => {
+                    return xScale(d[sortCriteria]) + 10;
+                })
+                .attr("y", (d) => {
+                    return yScale(d.Province) + yScale.bandwidth() / 2;
+                })
+                .style("font-size", "12px")
+                .text((d) => {
+                    return d[sortCriteria];
+                });
+                var xAxis = d3.axisBottom(xScale).ticks(5);
+                var yAxis = d3.axisLeft(yScale);
+
+                svg
+                .append("g")
+                .attr("class", "x-axis")
+                .attr("transform", "translate(0," + height + ")")
+                .call(xAxis);
+
+                svg.append("g").attr("class", "y-axis").call(yAxis);
+
+                svg
+                .append("text")
+                .attr("class", "x-label")
+                .attr("text-anchor", "middle")
+                .attr("x", width / 2)
+                .attr("y", height + margin.top + 20)
+                .text(sortCriteria.toUpperCase()+" in VND");
+
+                svg
+                .append("text")
+                .attr("class", "y-label")
+                .attr("text-anchor", "middle")
+                .attr("transform", "rotate(-90)")
+                .attr("x", -height / 2)
+                .attr("y", -margin.left + 20)
+                .attr("fill", "red")
+                .text("Sorted by GRPD in VND");
+            }
+
+            //add function to display
+              
+            function addNewProvince() {
+                let ValinCookie = parseInt(getCookie("limit"));
+                updateCookieValue("limit", ValinCookie + 1, 30);
+                window.location.reload();
+                updateChart(sortCriteria);
+
+            }
+            function deleteNewProvince() {
+                let ValinCookie = parseInt(getCookie("limit"));
+                updateCookieValue("limit", ValinCookie - 1, 30);
+                window.location.reload();
+                updateChart(sortCriteria);
+            }
+            
+            function setCookie(cname, cvalue, exdays) {
+                const d = new Date();
+                d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
+                let expires = "expires=" + d.toUTCString();
+                document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+            }
+            function getCookie(cname) {
+                let name = cname + "=";
+                let decodedCookie = decodeURIComponent(document.cookie);
+                let ca = decodedCookie.split(";");
+                for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) == " ") {
+                    c = c.substring(1);
+                }
+                if (c.indexOf(name) == 0) {
+                    return c.substring(name.length, c.length);
+                }
+                }
+                return "";
+            }
+            function checkCookie() {
+                let limit = getCookie("limit");
+                if (limit != "") {
+                //alert("This is the certain limit:  " + limit);
+                var CertainLimit = limit;
+                console.log(CertainLimit);
+                } else {
+                setCookie("limit", 20, 30);
+                }
+            }
+            function updateCookieValue(cookieName, newValue, daysToExpire) {
+                let currentValue = getCookie(cookieName);
+                currentValue = newValue;
+                setCookie(cookieName, currentValue, daysToExpire);
+            }
+            function deleteChart() {
+                svg.selectAll(".bar").remove();
+                svg.selectAll(".label").remove();
+                svg.selectAll(".x-axis").remove();
+                svg.selectAll(".y-axis").remove();
+                svg.selectAll(".x-label").remove();
+                svg.selectAll(".y-label").remove();
+            }
+            function createNewChart() {
+                data = data.slice(0, parseInt(getCookie("limit")));
+                updateChart();
+            }
+            function updateChartWithAnimation() {
+                deleteChart();
+                sortCriteria = document.getElementById("sortCriteria").value;
+                createNewChart();
+            }
+    </script>
+
+
+</body>
+</html>
