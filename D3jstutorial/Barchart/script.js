@@ -38,8 +38,6 @@ const xAxis = d3.axisBottom(x)
 //number of ticks in the x axis
     .ticks(5)
     .tickSize(0);//remove the ticks
-
-
 const yAxis = d3.axisLeft(y)
     .tickPadding(10)
     .tickSize(0);

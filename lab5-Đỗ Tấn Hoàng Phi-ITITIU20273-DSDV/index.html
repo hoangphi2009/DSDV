@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 5</title>
+  <link rel="stylesheet" href="main.css">
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+  <h3>Đỗ Tấn Hoàng Phi</h3>
+  <h4>ITITIU20273</h4>
+  <h4 class="course-title">Data Science and Data Visualization</h4>
+  <h4 class="lab-title">Lab 5 – D3.js - Interaction</h4>
+  <p>This is all my own work. I did not copy the code from any other source.</p>
+  <div id="tooltip" style="position: absolute; opacity: 0;"></div>
+
+  <script>
+    
+    var margin = {
+      top: 20,
+      right: 20,
+      bottom: 40,
+      left: 40
+    };
+    var width = 800 - margin.left - margin.right;
+    var height = 400 - margin.top - margin.bottom;
+
+    
+    var svg = d3
+      .select("body")
+      .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    
+    d3.csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv").then(function (data) {
+      
+      var date = "4/5/20";
+
+      
+      var xScale = d3.scaleLinear().domain([-180, 180]).range([0, width]);
+      var yScale = d3.scaleLinear().domain([-90, 90]).range([height, 0]);
+
+      
+      var opacityScale = d3.scaleSqrt().domain([0, d3.max(data, function (d) {
+        return +d[date];
+      })]).range([3, 15]);
+
+
+      var xAxis = d3.axisBottom(xScale)
+      .ticks(6);
+      var yAxis = d3.axisLeft(yScale)
+      .ticks(6);
+
+      var colorScale = d3.scaleLinear()
+        .domain([0, 1000, 5000, 10000, 50000, 100000,1000000])
+        .range(["#CCFFFF", "#99FFFF", "#66FFFF", "#33FFFF", "#00FFFF", "#33CCFF","#0066CC"]);
+
+      svg
+        .selectAll("circle")
+        .data(data)
+        .enter()
+        .append("circle")
+        .attr("cx", function (d) {return xScale(+d["Long"]);})
+        .attr("cy", function (d) {return yScale(+d["Lat"]);})
+        .attr("r", function (d) {return opacityScale(+d[date]);})
+        .attr("fill", function (d) {return colorScale(+d[date]);})
+        .attr("stroke", "black")
+        .style("opacity", 0.9)
+        
+        .on("mouseover", function (event, d) {
+          var mouseX = event.pageX;
+          var mouseY = event.pageY;
+          d3.select("#tooltip")
+            .style("opacity", 0.9)
+            .html("Province/State: " + d["Province/State"] + "<br>Country/Region: " + d["Country/Region"] + "<br>Latitude: " + d["Lat"] + "<br>Longitude: " + d["Long"] + "<br>Confirmed Cases: " + d[date])
+            .style("left", (mouseX + 10) + "px")
+            .style("top", (mouseY - 5) + "px");
+        })
+        .on("mouseout", function () {d3.select("#tooltip").style("opacity", 0);});
+
+
+      svg.append("g").attr("class", "x-axis").attr("transform", "translate(0," + height + ")").call(xAxis);
+      svg.append("g").attr("class", "y-axis").call(yAxis);
+    });
+      </script>
+</body>
+
+</html>
