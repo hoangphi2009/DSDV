@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Lab 5</title>
+  <link rel="stylesheet" type="text/css" href="style.css" />
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+
+<body>
+  <h3>Nguyen Hoang Ly</h3>
+  <h4 class="name">ITITIU20249</h4>
+  <h4 class="id">Data science and data visualization</h4>
+  <h4 class="title">Lab 5 – D3.js – Interaction</h4>
+  <p>
+    This is all my own work. I did not copy the code from any other source.
+  </p>
+  <div id="bar-chart" class="bar-chart"></div>
+
+  <script>
+    function rowConverter(d) {
+      return {
+        cases: parseFloat(d["3/3/22"]),
+        label: d["Province/State"] + " - " + d["Country/Region"],
+        latitude: parseFloat(d["Lat"]),
+        longitude: parseFloat(d["Long"])
+      };
+    }
+
+    d3.csv(
+      "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv",
+      rowConverter
+    )
+      .then(originalData => {
+        // Filter out non-zero rows
+        // Filter out non-zero rows
+        const nonZeroData = originalData.filter(row => row.cases > 0);
+        let first20Rows = nonZeroData.slice(0, 50);
+        console.log(nonZeroData);
+        console.log(originalData);
+
+        your_draw_chart_function(first20Rows);
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+
+    // FUNCTION HERE
+    function your_draw_chart_function(data) {
+
+      // Create svg
+      const svg = d3.select("#bar-chart")
+        .append("svg")
+        .attr("width", 1200)
+        .attr("height", 1200)
+        .attr("padding", 200)
+
+      // Define x and y scales
+      var yScale = d3
+        .scaleBand()
+        .domain(data.map(d => d.label))
+        .range([0, svg.attr("height") - 200])
+        .padding(0.1);
+      var xScale = d3
+        .scaleLinear()
+        .domain([0, d3.max(data, d => d.cases)])
+        .range([0, svg.attr("width")]);
+
+      var yAxis = d3.axisLeft(yScale)
+        .tickPadding(10)
+        .tickSize(0);
+      var xAxis = d3.axisBottom(xScale)
+        .ticks(5)
+        .tickSize(0);//remove the ticks
+      ;
+
+      // Create y and x axes
+      svg
+        .append("g")
+        .attr("class", "y-axis")
+        .call(yAxis);
+
+      svg
+        .append("g")
+        .attr("class", "x-axis")
+        .attr("transform", "translate(0," + (svg.attr("height") - 200) + ")")
+        .call(xAxis);
+
+      // Create Bars
+      svg.selectAll("rect")
+        .data(data)
+        .enter()
+        .append("rect")
+        .attr("fill", "red")
+        .attr("y", d => yScale(d.label))
+        .attr("x", 0)
+        .attr("width", d => xScale(d.cases))
+        .attr("height", yScale.bandwidth())
+        .attr("opacity", d => (d.cases / 100000) + 0.07);
+         
+        //add value
+        svg.selectAll("text")
+        .data(data)
+        .enter()
+        .append("text")
+        .attr("class", "label")
+        .attr("x", d => xScale(d.label) + 5) // Adjust the position as needed
+        .attr("y", d => yScale(d.label) + yScale.bandwidth() / 2)
+        .text(d => d.cases);
+    }
+  </script>
+</body>
+
+</html>

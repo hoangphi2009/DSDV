@@ -1,0 +1,35 @@
+body {
+    font-family: Arial, sans-serif;
+  }
+  
+  h3 {
+    color: blue;
+  }
+  
+  h4 {
+    font-weight: bold;
+  }
+
+.type{
+  color: red;
+  font-weight: bold;
+}
+  
+.lab-title {
+  font-weight: 100;
+  font-style: italic;
+}
+#tooltip {
+  position: absolute;
+  opacity: 0;
+  z-index: 999;
+  background-color: #ffffff;
+  border: 1px solid black;
+  padding: 8px;
+}
+circle:hover {
+  fill: #FF0033; 
+  stroke-width: 2px; 
+}
+
+

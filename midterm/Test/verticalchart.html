@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Lab 5</title>
+  <link rel="stylesheet" type="text/css" href="style.css" />
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+
+<body>
+  <h3>Nguyen Hoang Ly</h3>
+  <h4 class="name">ITITIU20249</h4>
+  <h4 class="id">Data science and data visualization</h4>
+  <h4 class="title">Lab 5 – D3.js – Interaction</h4>
+  <p>
+    This is all my own work. I did not copy the code from any other source.
+  </p>
+  <div id="bar-chart" class="bar-chart"></div>
+
+  <script>
+    function rowConverter(d) {
+      return {
+        cases: parseFloat(d["5/4/20"]),
+        province: d["Province/State"],
+        country: d["Country/Region"],
+        latitude: parseFloat(d["Lat"]),
+        longitude: parseFloat(d["Long"])
+      };
+    }
+
+    d3.csv(
+      "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv",
+      rowConverter
+    )
+      .then(originalData => {
+        // Filter out non-zero rows
+        const nonZeroData = originalData.filter(row => row.cases !== 0);
+        let first20Rows = nonZeroData.slice(0,50);
+        console.log(nonZeroData);
+        console.log(originalData);
+        
+        your_draw_chart_function(first20Rows);
+    })
+    .catch((error) => {
+        console.log(error);
+    });
+    
+    // FUNCTION HERE
+    function your_draw_chart_function(data) {
+        
+        // Create svg
+        const svg = d3.select("#bar-chart")
+          .append("svg")
+          .attr("width", 1000)
+          .attr("height", 1000)
+          .attr("padding", 200)
+      var Tooltip = d3.select("#bar-chart")
+        .append("div")
+        .style("opacity", 0)
+        .attr("class", "tooltip")
+        .style("background-color", "white")
+        .style("border", "solid")
+        .style("border-width", "2px")
+        .style("border-radius", "5px")
+        .style("padding", "5px")
+        .style("position", "absolute")
+
+      // Three functions that change the tooltip when the user hovers / moves / leaves a bar
+      var mouseover = function (event, d) {
+        Tooltip
+          .style("opacity", 1)
+        d3.select(this)
+        .style("stroke", "black")
+        .attr("opacity", d => (d.cases / 100000) + 0.7)
+      }
+      var mousemove = function (event, d) {
+        Tooltip
+          .style("top", (event.pageY + 10) + "px")
+          .style("left", (event.pageX + 10) + "px")
+          .html("Country: " + (d.province == '' ? d.country : d.country + "<br> Province: " + d.province) + "<br>" +
+            "Latitude: " + d.latitude + "<br>" +
+            "Longitude: " + d.longitude + "<br>" +
+            "Confirmed Cases: " + d.cases
+          )
+      }
+      var mouseleave = function (event, d) {
+        Tooltip
+          .style("opacity", 0)
+          .style("top", (event.pageY + 200) + "px")
+          .style("left", (event.pageX + 200) + "px")
+        d3.select(this)
+          .attr("opacity", d => (d.cases / 100000) + 0.07)
+          .style("stroke", "none")
+      }
+
+
+      // Define x and y scales
+      var xScale = d3
+        .scaleBand()
+        .domain(data.map(d => (d.province == '' ? d.country : d.country + " - " + d.province)))
+        .range([0, svg.attr("width") - 100])
+        .padding(0.1);
+      var yScale = d3
+        .scaleLinear()
+        .domain([0, d3.max(data, d => d.cases)])
+        .range([svg.attr("height") - 30, 0]);
+
+      var xAxis = d3.axisBottom(xScale);
+      var yAxis = d3.axisLeft(yScale);
+
+      // Create x and y axes
+      svg
+        .append("g")
+        .attr("class", "x-axis")
+        .attr("transform", "translate(0," + (svg.attr("height") - 30) + ")")
+        .call(xAxis)
+        .selectAll("text")
+        .attr("transform", "rotate(-45)")
+        .style("text-anchor", "end");
+
+      svg
+        .append("g")
+        .attr("class", "y-axis")
+        .call(yAxis);
+
+      // Create Bars
+      svg.selectAll("rect")
+        .data(data)
+        .enter()
+        .append("rect")
+        .attr("fill", "red")
+        .attr("x", d => xScale(d.province == '' ? d.country : d.country + " - " + d.province))
+        .attr("y", d => yScale(d.cases)-30)
+        .attr("width", xScale.bandwidth())
+        .attr("height", d => svg.attr("height") - yScale(d.cases))
+        .attr("opacity", d => (d.cases / 100000) + 0.07)
+        .on("mouseover", mouseover)
+        .on("mousemove", mousemove)
+        .on("mouseleave", mouseleave);
+    }
+  </script>
+</body>
+
+</html>
