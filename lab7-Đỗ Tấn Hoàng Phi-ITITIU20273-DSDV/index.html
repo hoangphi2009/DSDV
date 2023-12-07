@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LAB 7</title>
+  <link rel="stylesheet" href="main.css">
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+</head>
+
+<body>
+  <h3>Đỗ Tấn Hoàng Phi</h3>
+  <h4>ITITIU20273</h4>
+  <h4 class="course-title">Data Science and Data Visualization</h4>
+  <h4 class="lab-title">Lab 7 –D3.js – Line chart</h4>
+  <p>This is all my own work. I did not copy the code from any other source.</p>
+  <div id="chart"></div>
+  <div id="tooltip"
+    style="position: absolute; opacity: 0; pointer-events: none; border: 1px solid #ccc; background-color: white; padding: 10px;">
+  </div>
+  <script>
+    // Load the data
+    d3.csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
+      .then(function (data) {
+        var transposedData = [];
+        var bisectDate = d3.bisector(function (d) { return d.Date; }).left;
+        var countries = ['Vietnam', 'France', 'US', 'Italy'];
+        var province = [''];
+
+        data.forEach(function (d) {
+          var country = d['Country/Region'];
+          var state = d['Province/State'];
+          if (countries.includes(country) && province.includes(state)) {
+            for (var [key, value] of Object.entries(d)) {
+              if (key !== 'Province/State' && key !== 'Country/Region' && key !== 'Lat' && key !== 'Long') {
+                var date = new Date(key);
+                if (date >= new Date('2020-04-01') && date <= new Date('2020-05-01')) {
+                  transposedData.push({
+                    Country: country,
+                    Date: date,
+                    'Number of confirmed cases': +value
+                  });
+                }
+              }
+            }
+          }
+        });
+
+        // Use d3.nest to group data by country
+        var nestedData = d3.nest()
+          .key(function (d) { return d.Country; })
+          .entries(transposedData);
+
+        // Filter data for specific countries
+        var selectedCountries = ["Vietnam", "US", "France", "Italy"];
+        nestedData = nestedData.filter(function (d) {
+          return selectedCountries.includes(d.key);
+        });
+
+        // Set up the chart dimensions
+        var margin = { top: 50, right: 50, bottom: 80, left: 80 };
+        var width = 1000 - margin.left - margin.right;
+        var height = 600 - margin.top - margin.bottom;
+
+        // Create the SVG container
+        var svg = d3.select("#chart")
+          .append("svg")
+          .attr("width", width + 100 + margin.left + margin.right)
+          .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+          .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        // Set the scales
+        var xScale = d3.scaleTime().domain(d3.extent(transposedData, function (d) { return d.Date; })).range([0, width]);
+        var yScale = d3.scaleLinear().domain([0, d3.max(transposedData, function (d) { return d["Number of confirmed cases"]; })]).range([height, 0]);
+
+        // Define the line function
+        var line = d3.line()
+          .x(function (d) { return xScale(d.Date); })
+          .y(function (d) { return yScale(d["Number of confirmed cases"]); });
+
+        // Add the x-axis
+        svg.append("g")
+          .attr("transform", "translate(0," + height + ")")
+          .call(d3.axisBottom(xScale));
+
+        // Add the y-axis
+        svg.append("g")
+          .call(d3.axisLeft(yScale));
+
+        // Add the lines
+        var lines = svg.selectAll(".line")
+          .data(nestedData)
+          .enter()
+          .append("path")
+          .attr("class", "line")
+          .attr("d", function (d) { return line(d.values); })
+          .style("stroke", function (d) { return getColor(d.key); })
+          .style("fill", "none")
+          .style("stroke-width", 4)
+          .on("mouseover", function (d) {
+            handleMouseOver(d);
+            d3.select(this).style("stroke-width", 5); // Highlight the line on mouseover
+          })
+          .on("mouseout", function (d) {
+            handleMouseOut(d);
+            d3.select(this).style("stroke-width", 4); // Reset the line width on mouseout
+          });
+
+        // Add legends
+        var legend = svg.selectAll(".legend")
+          .data(nestedData)
+          .enter()
+          .append("g")
+          .attr("class", "legend")
+          .attr("transform", function (d, i) { return "translate(100," + i * 20 + ")"; })
+          .on("mouseover", function (d) {
+            handleLegendMouseOver(d);
+          })
+          .on("mouseout", function (d) {
+            handleLegendMouseOut(d);
+          });
+
+        legend.append("rect")
+          .attr("x", width - 18)
+          .attr("width", 18)
+          .attr("height", 18)
+          .style("fill", function (d) { return getColor(d.key); });
+
+        legend.append("text")
+          .attr("x", width - 24)
+          .attr("y", 9)
+          .attr("dy", ".35em")
+          .style("text-anchor", "end")
+          .text(function (d) { return d.key; });
+
+        // Add a mousemove event listener to continuously update the circle positions
+        svg.on("mousemove", function () {
+          var mouseX = d3.mouse(this)[0];
+          var invertedX = xScale.invert(mouseX);
+          var bisectDate = d3.bisector(function (d) { return d.Date; }).left;
+
+          // Update circle positions and show tooltip
+          tooltipCircles.attr("cx", mouseX);
+
+          var tooltipContent = "";
+
+          nestedData.forEach(function (data, i) {
+            var dateIndex = bisectDate(data.values, invertedX);
+            var dataPoint = data.values[dateIndex];
+            var tooltipCircle = tooltipCircles.filter(function (d, index) { return index === i; });
+
+            tooltipCircle
+              .attr("cy", yScale(dataPoint["Number of confirmed cases"]))
+              .style("opacity", 0.9);
+
+            // Build content for the tooltip for each line
+            tooltipContent += "Date: " + formatDate(dataPoint.Date) +
+              "<br>Country: " + data.key +
+              "<br>Confirmed Cases: " + dataPoint["Number of confirmed cases"] + "<br><br>";
+          });
+
+          // Show information in the common tooltip
+          d3.select("#tooltip")
+            .html(tooltipContent)
+            .style("left", (d3.event.pageX + 10) + "px")
+            .style("top", (d3.event.pageY - 28) + "px")
+            .style("opacity", 0.9);
+        });
+        // Add circles for the tooltip
+        var tooltipCircles = svg.selectAll(".tooltip-circle")
+          .data(nestedData)
+          .enter()
+          .append("circle")
+          .attr("class", "tooltip-circle")
+          .attr("r", 6)
+          .style("fill", "none")
+          .style("stroke", function (d) { return getColor(d.key); })
+          .style("stroke-width", 2)
+          .style("opacity", 0); // Initially hide the circles
+
+        function getColor(country) {
+          // You can customize colors based on your preference
+          var colorScale = d3.scaleOrdinal()
+            .domain(["Vietnam", "US", "France", "Italy"])
+            .range(["#2ca02c", "#34a2eb", "#eb4034", "#d9eb34"]); // Add more colors if needed
+          return colorScale(country);
+        }
+
+        function formatDate(date) {
+          var options = { year: 'numeric', month: 'long', day: 'numeric' };
+          return date.toLocaleDateString(undefined, options);
+        }
+
+        function handleMouseOver(d) {
+          // Show tooltip circles and tooltip on mouseover
+          svg.selectAll(".tooltip-circle")
+            .style("opacity", 0.9);
+          d3.select("#tooltip")
+            .style("opacity", 0.9)
+            .html("Date: " + formatDate(d.values[0].Date) + "<br>Country: " + d.key + "<br>Confirmed Cases: " + d.values[0]["Number of confirmed cases"])
+            .style("left", (d3.event.pageX + 10) + "px")
+            .style("top", (d3.event.pageY - 28) + "px");
+        }
+
+        function handleMouseOut() {
+          // Hide tooltip circles and tooltip on mouseout
+          svg.selectAll(".tooltip-circle").style("opacity", 0);
+          d3.select("#tooltip").style("opacity", 0);
+        }
+
+        function handleLegendMouseOver(d) {
+          // Filter lines when legend item is hovered
+          svg.selectAll(".line")
+            .style("opacity", function (line) {
+              return line.key === d.key ? 1 : 0.2;
+            });
+        }
+
+        function handleLegendMouseOut() {
+          // Reset line opacity when legend item is not hovered
+          svg.selectAll(".line")
+            .style("opacity", 1);
+        }
+      });
+  </script>
+</body>
+
+</html>
