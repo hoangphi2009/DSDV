@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab 8</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <link rel="stylesheet" href="main.css">
+</head>
+
+<body>
+    <h1>Đỗ Tấn Hoàng Phi</h1>
+    <h2>ITITIU20273</h2>
+    <h3>Data science and data visualization</h3>
+    <h3>Lab 8 –D3.js – Line chart</h3>
+    <p>This is all my own work. I did not copy the code from any other source</p>
+    <br>
+
+    <div class="float-container">
+        <div class="float-child">
+            <button id="reset1">Reset Map</button>
+            <svg id="plot1" width="1100" height="800"></svg>
+        </div>
+
+        <div class="float-child">
+            <button id="reset2">Reset Map</button>
+            <svg id="plot2" width="1100" height="800"></svg>
+        </div>
+    </div>
+    <div id="tooltip" class="hidden"></div>
+    <script>
+        const w = 1100;
+        const h = 800;
+        const p = 100;
+
+        let rowConverter = function (d) {
+            return {
+                province: d["province"],
+                population: +d["population"],
+            };
+        };
+
+        function removePrefixes(name) {
+            return name.replace("Thành phố", "").replace("Tỉnh", "").trim();
+        }
+
+        d3.csv("https://raw.githubusercontent.com/TungTh/tungth.github.io/master/data/vn-provinces-data.csv", rowConverter,
+            function (data) {
+                d3.json("https://raw.githubusercontent.com/TungTh/tungth.github.io/master/data/vn-provinces.json",
+                    function (json) {
+                        let scale = 170;
+                        let path = d3.geoPath().projection(
+                            d3.geoMercator()
+                                .scale([scale])
+                                .center(d3.geoCentroid(json))
+                                .translate([w / 2, h / 2])
+                        );
+                        let bounds = path.bounds(json);
+                        let hScale = (scale * (w - p)) / (bounds[1][0] - bounds[0][0]);
+                        let vScale = (scale * (h - p)) / (bounds[1][1] - bounds[0][1]);
+                        scale = hScale < vScale ? hScale : vScale;
+
+                        let offset = [
+                            w - (bounds[0][0] + bounds[1][0]) / 1.5,
+                            h - (bounds[0][1] + bounds[1][1]) / 1.8,
+                        ];
+
+                        let projection = d3
+                            .geoMercator()
+                            .center(d3.geoCentroid(json))
+                            .translate(offset)
+                            .scale(scale);
+
+                        // Update path
+                        path = d3.geoPath().projection(projection);
+
+                        let colorScale = d3.scaleQuantile()
+                            .domain(data.map((item) => item.population))
+                            .range(["#FFEBEE", "#FFCDD2", "#EF9A9A", "#E57373", "#EF5350", "#B71C1C"]);
+
+                        let svg = d3.select("#plot1")
+                            .append("g");
+
+                        // Add title to the map
+                        svg.append("text")
+                            .attr("x", w / 2)
+                            .attr("y", 30)
+                            .attr("text-anchor", "middle")
+                            .style("font-size", "20px")
+                            .style("font-weight", "bold")
+                            .text("Vietnam geomap with choropleth");
+
+                        // Add map container
+                        var map = svg.append("g").attr("id", "map");
+
+                        // Define zoom function
+                        let zoomed = function () {
+                            const { transform } = d3.event;
+                            map
+                                .attr("transform", transform)
+                                .attr("stroke-width", 1 / transform.k);
+                        };
+
+                        // Zoom on click function
+                        function clicked(d) {
+                            let [[x0, y0], [x1, y1]] = path.bounds(d);
+
+                            province.transition().style("fill", "white");
+                            d3.select(this).transition().style("fill", "red");
+                            svg
+                                .transition()
+                                .duration(750)
+                                .call(
+                                    zoom.transform,
+                                    d3.zoomIdentity
+                                        .translate(w / 2, h / 2)
+                                        .scale(1)
+                                        .scale(Math.min(8, 0.9 / Math.max((x1 - x0) / w, (y1 - y0) / h)))
+                                        .translate(-(x0 + x1) / 2, -(y0 + y1) / 2)
+                                );
+
+                            d3.event.stopPropagation();
+                        }
+
+                        // Zoom features
+                        let zoom = d3.zoom().scaleExtent([1, 8]).on("zoom", zoomed);
+                        map.call(zoom);
+
+                        // Incorporate data into JSON
+                        for (const element of data) {
+                            let dataProvince = element.province;
+                            let dataPopulation = element.population;
+                            for (const element of json.features) {
+                                let jsonProvince = removePrefixes(element.properties.Ten);
+                                if (dataProvince === jsonProvince) {
+                                    element.properties.Population = dataPopulation;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Bind data and create map
+                        let province = map
+                            .selectAll("path")
+                            .data(json.features)
+                            .enter()
+                            .append("path")
+                            .attr("d", path)
+                            .style("stroke", "none")
+                            .style("fill", function (d) {
+                                let population = d.properties.Population;
+
+                                if (population) {
+                                    return colorScale(population);
+                                } else {
+                                    return "#CCC";
+                                }
+                            })
+                            .attr("cursor", "pointer")
+                            .on("click", clicked)
+                            .on("mouseover", function (d) {
+                                let population = d.properties.Population;
+                                var mouseX = d3.event.pageX;
+                                var mouseY = d3.event.pageY;
+
+                                d3.select("#tooltip")
+                                    .style("opacity", 1)
+                                    .style("left", (mouseX + 10) + "px")
+                                    .style("top", (mouseY - 50) + "px")
+                                    .html("<strong>" + d.properties.Ten + "</strong><br>Population: " + population);
+
+                                d3.select("#tooltip").classed("hidden", false);
+                            })
+                            .on("mouseout", function () {
+                                d3.select("#tooltip").classed("hidden", true);
+                            });
+
+                        // Reset function
+                        d3.select("#reset1").on("click", function () {
+                            province.style("fill", function (d) {
+                                let population = d.properties.Population;
+                                if (population) {
+                                    return colorScale(population);
+                                } else {
+                                    return "#CCC";
+                                }
+                            });
+
+                            svg
+                                .transition()
+                                .duration(750)
+                                .call(
+                                    zoom.transform,
+                                    d3.zoomIdentity,
+                                    d3.zoomTransform(svg.node()).invert([w / 2, h / 2])
+                                );
+                            d3.event.stopPropagation();
+                        });
+                    }
+                )
+            }
+        );
+
+        let rowConverter2 = function (d) {
+            return {
+                province: d["Provinces"],
+                cases: d["Cases"],
+            }
+        }
+
+        d3.csv("https://raw.githubusercontent.com/minhkoten1551/leminhtuan2610/main/Vietnam%20COVID19%20Provinces.csv", rowConverter2,
+            function (data) {
+                d3.json("https://raw.githubusercontent.com/TungTh/tungth.github.io/master/data/vn-provinces.json",
+                    function (json) {
+                        let scale = 170;
+                        let path = d3.geoPath().projection(
+                            d3
+                                .geoMercator()
+                                .scale([scale])
+                                .center(d3.geoCentroid(json))
+                                .translate([w / 2, h / 2])
+                        );
+
+                        // Define centered projection
+                        let bounds = path.bounds(json);
+                        let hScale = (scale * (w - p)) / (bounds[1][0] - bounds[0][0]);
+                        let vScale = (scale * (h - p)) / (bounds[1][1] - bounds[0][1]);
+                        scale = hScale < vScale ? hScale : vScale;
+
+                        let offset = [
+                            w - (bounds[0][0] + bounds[1][0]) / 1.5,
+                            h - (bounds[0][1] + bounds[1][1]) / 1.8,
+                        ];
+
+                        let projection = d3
+                            .geoMercator()
+                            .center(d3.geoCentroid(json))
+                            .translate(offset)
+                            .scale(scale);
+
+                        // Update path
+                        path = d3.geoPath().projection(projection);
+
+                        let colorScale = d3.scaleQuantile()
+                            .domain(data.map((item) => item.cases))
+                            .range(["#E3F2FD", "#BBDEFB", "#64B5F6", "#42A5F5", "#2196F3", "#1565C0"]);
+
+                        // Add svg element
+                        let svg = d3.select("#plot2")
+                            .append("g");
+
+                        // Add title to the map
+                        svg.append("text")
+                            .attr("x", w / 2)
+                            .attr("y", 30)
+                            .attr("text-anchor", "middle")
+                            .style("font-size", "20px")
+                            .style("font-weight", "bold")
+                            .text("Geomap of Confirmed COVID-19 Cases in Vietnam");
+
+                        // Map container
+                        var map = svg.append("g").attr("id", "map");
+
+                        // Zoom function
+                        let zoomed = function () {
+                            const { transform } = d3.event;
+                            map.attr("transform", transform)
+                                .attr("stroke-width", 1 / transform.k);
+                        };
+
+                        // Zoom on click
+                        function clicked(d) {
+                            let [[x0, y0], [x1, y1]] = path.bounds(d);
+
+                            province.transition().style("fill", "white");
+                            d3.select(this).transition().style("fill", "blue");
+                            svg
+                                .transition()
+                                .duration(750)
+                                .call(
+                                    zoom.transform,
+                                    d3.zoomIdentity
+                                        .translate(w / 2, h / 2)
+                                        .scale(1)
+                                        .scale(Math.min(8, 0.9 / Math.max((x1 - x0) / w, (y1 - y0) / h)))
+                                        .translate(-(x0 + x1) / 2, -(y0 + y1) / 2)
+                                );
+
+                            d3.event.stopPropagation();
+                        }
+
+                        // Zoom feature
+                        let zoom = d3.zoom().scaleExtent([1, 8]).on("zoom", zoomed);
+                        map.call(zoom);
+
+                        // Incorporate COVID-19 Cases data in JSON
+                        for (const element of data) {
+                            let dataProvince = element.province;
+                            let dataCases = element.cases;
+                            for (const element of json.features) {
+                                let jsonProvince = removePrefixes(element.properties.Ten);
+                                if (dataProvince === jsonProvince) {
+                                    element.properties.Cases = dataCases;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Create map
+                        let province = map.selectAll("path")
+                            .data(json.features)
+                            .enter()
+                            .append("path")
+                            .attr("d", path)
+                            .style("stroke", "none")
+                            .style("fill", function (d) {
+                                let cases = d.properties.Cases;
+                                if (cases) {
+                                    return colorScale(cases);
+                                } else {
+                                    return "#CCC";
+                                }
+                            })
+                            .attr("cursor", "pointer")
+                            .on("click", clicked)
+                            .on("mouseover", function (d) {
+                                let cases = d.properties.Cases;
+                                var mouseX = d3.event.pageX;
+                                var mouseY = d3.event.pageY;
+                                d3.select("#tooltip")
+                                    .style("left", (mouseX + 10) + "px")
+                                    .style("top", (mouseY - 60) + "px")
+                                    .html("<strong>" + d.properties.Ten + "</strong><br>Cases: " + cases);
+
+                                d3.select("#tooltip").classed("hidden", false);
+                            })
+                            .on("mouseout", function () {
+                                d3.select("#tooltip").classed("hidden", true);
+                            });
+
+                        d3.select("#reset2").on("click", function () {
+                            province.style("fill", function (d) {
+                                let cases = d.properties.Cases;
+                                if (cases) {
+                                    return colorScale(cases);
+                                } else {
+                                    return "#CCC";
+                                }
+                            });
+                            svg.transition()
+                                .duration(750)
+                                .call(
+                                    zoom.transform,
+                                    d3.zoomIdentity,
+                                    d3.zoomTransform(svg.node()).invert([w / 2, h / 2])
+                                );
+                            d3.event.stopPropagation();
+                        });
+                    }
+                )
+            }
+        );
+    </script>
+
+</body>
+</html>

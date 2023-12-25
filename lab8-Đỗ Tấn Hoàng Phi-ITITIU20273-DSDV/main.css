@@ -1,0 +1,29 @@
+.float-container {
+    padding: 20px;
+}
+
+.float-child {
+    width: 50%;
+    position: relative;
+    float: left;
+}
+
+#tooltip {
+    position: absolute;
+    width: 200px;
+    height: auto;
+    padding: 10px;
+    background-color: white;
+    border-radius: 10px;
+    pointer-events: none;
+}
+
+#tooltip.hidden {
+    display: none;
+}
+
+.selected {
+    opacity: 1 !important;
+    stroke: black;
+    stroke-width: 1px;
+}
